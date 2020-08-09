@@ -1,16 +1,7 @@
-<<<<<<< HEAD
 # E-commerce in Django
 
 API for a online shop where orders will be delivered with the help of drivers or
 customers will take their orders from sellers.
-
----
-=======
-# django-e-commerce
-
-
-API for a e-commerce written in django
->>>>>>> 9b811b4673883f5375c3ee152b4c424e74c95f15
 
 # About project
 
@@ -24,11 +15,7 @@ Create virtual environment and clone this repository:
 
 <code>>>> cd Scripts\activate</code>
 
-<<<<<<< HEAD
 <code>>>> git clone https://github.com/jamshidyerzakov/django-e-commerce.git</code>
-=======
-<code>>>> git clone https://github.com/jamshidyerzakov/django_e-commerce.git</code>
->>>>>>> 9b811b4673883f5375c3ee152b4c424e74c95f15
 
 Install all packages from <strong> requirements.txt. </strong> :
 
@@ -36,11 +23,7 @@ Install all packages from <strong> requirements.txt. </strong> :
 
 Make migrations and migrate:
 
-<<<<<<< HEAD
 <code>>>> cd django-e-commerce</code>
-=======
-<code>>>> cd django_e-commerce</code>
->>>>>>> 9b811b4673883f5375c3ee152b4c424e74c95f15
 
 <code>>>> python manage.py makemigrations</code>
 
@@ -52,7 +35,7 @@ Run the server and check the documentation for further actions:
 
 Go to http://127.0.0.1:8000/swagger/ in order to check the docs
 
-<<<<<<< HEAD
+
 ## Authentication
 
 First step — user registration from site (not social auth).
@@ -344,8 +327,7 @@ Soon
 # Contributions
 
 Pull requests are welcome! (develop branch)
-=======
+
 # Contributions
 
 Pull requests are welcome!
->>>>>>> 9b811b4673883f5375c3ee152b4c424e74c95f15
