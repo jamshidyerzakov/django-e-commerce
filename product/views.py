@@ -7,7 +7,6 @@ from .models import Product
 
 
 class ProductViewSet(ModelViewSet):
-    serializer_class = ProductSerializer
     queryset = Product.objects.all()
     lookup_field = 'slug'
 

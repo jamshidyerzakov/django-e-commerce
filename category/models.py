@@ -1,13 +1,20 @@
 from django.db import models
-from django.utils.text import slugify
+from django.db.models.signals import pre_save
+
+from service.general.signals import pre_save_create_slug
 
 
 class Category(models.Model):
     """Categorizing posts"""
     title = models.CharField(max_length=128, verbose_name="Title")
     description = models.TextField(verbose_name="Description")
-    slug = models.SlugField(max_length=128, unique=True, blank=True)
-    children_categories = models.ForeignKey(
+    slug = models.SlugField(
+        max_length=128,
+        help_text="optional (title will be slugified) or write UNIQUE slug",
+        unique=True,
+        blank=True
+    )
+    parent_category = models.ForeignKey(
         'self',
         null=True,
         blank=True,
@@ -22,9 +29,7 @@ class Category(models.Model):
         verbose_name_plural = 'Categories'
 
     def __str__(self):
-        return self.title[:20]
+        return str(self.slug)
 
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.title)
-        return super().save(*args, **kwargs)
+
+pre_save.connect(pre_save_create_slug, sender=Category)

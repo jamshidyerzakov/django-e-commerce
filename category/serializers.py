@@ -20,7 +20,7 @@ class CategoryCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = '__all__'
+        exclude = ('slug', 'title', 'description')
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -32,6 +32,5 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         list_serializer_class = FilterCategorySerializer
         model = Category
-        fields = ("id", "title", "description", "children", "products", "url")
+        exclude = ('parent_category', 'slug', 'title', 'description')
 
-    # def get

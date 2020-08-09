@@ -1,17 +1,17 @@
-import traceback
-
 from django.db import IntegrityError, transaction
 from djoser.conf import settings
 from django.contrib.auth import get_user_model
 
-from rest_framework import serializers
-
 from djoser.serializers import UserCreateSerializer
+from rest_framework import serializers
 from rest_framework.serializers import raise_errors_on_nested_writes, ModelSerializer
 from rest_framework.utils import model_meta
 
 from address.serializers import SellerAddressSerializer, CustomerAddressSerializer
+from product.models import Product
 from service.accounts.general import create_user_by_type, create_user_by_validated_data, retrieve_extra_fields
+
+from order.serializers import OrderDetailSerializer, CartDetailSerializer
 
 from .models import (
     Customer, CustomerMore,
@@ -21,12 +21,12 @@ from .models import (
     Admin, AdminMore
 )
 
+
 User = get_user_model()
 
 
 class CustomModelSerializer(ModelSerializer):
     def update(self, instance, validated_data):
-        print(instance, validated_data)
         raise_errors_on_nested_writes('update', self, validated_data)
         info = model_meta.get_field_info(instance)
 
@@ -58,28 +58,22 @@ class CustomerMoreSerializer(serializers.ModelSerializer):
         exclude = ('id', 'user')
 
 
-class CustomerSerializer(CustomModelSerializer):
-    url = serializers.HyperlinkedIdentityField(view_name='accounts:customer-detail')
-    customer_addresses = CustomerAddressSerializer(many=True)
+class CustomerCreateSerializer(serializers.ModelSerializer):
     more = CustomerMoreSerializer()
 
     class Meta:
         model = Customer
         fields = (
-            'id',
             'type',
             'username',
             'first_name',
             'last_name',
             'email',
+            'phone_number',
             'password',
             'more',
-            'phone_number',
-            'customer_addresses',
             'is_staff',
             'is_active',
-            'last_login',
-            'url'
         )
 
     def create(self, validated_data):
@@ -99,20 +93,15 @@ class CustomerSerializer(CustomModelSerializer):
         return value
 
 
-class SellerMoreSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SellerMore
-        exclude = ('id', 'user')
-
-
-class SellerSerializer(CustomModelSerializer):
-    url = serializers.HyperlinkedIdentityField(view_name='accounts:seller-detail')
-    more = SellerMoreSerializer()
-    seller_addresses = SellerAddressSerializer(many=True)
-    # products = serializers.SerializerMethodField('get_seller_products')
+class CustomerSerializer(CustomModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name='accounts:customer-detail')
+    customer_addresses = CustomerAddressSerializer(many=True)
+    customer_orders = OrderDetailSerializer(many=True)
+    carts = CartDetailSerializer(many=True)
+    more = CustomerMoreSerializer()
 
     class Meta:
-        model = Seller
+        model = Customer
         fields = (
             'id',
             'type',
@@ -121,17 +110,44 @@ class SellerSerializer(CustomModelSerializer):
             'last_name',
             'email',
             'password',
-            'phone_number',
+            'customer_orders',
+            'carts',
             'more',
-            # 'products',
-            'seller_addresses',
+            'phone_number',
+            'customer_addresses',
             'is_staff',
             'is_active',
             'last_login',
             'url'
         )
 
+
+class SellerMoreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SellerMore
+        exclude = ('id', 'user')
+
+
+class SellerCreateSerializer(serializers.ModelSerializer):
+    more = SellerMoreSerializer()
+
+    class Meta:
+        model = Customer
+        fields = (
+            'type',
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'phone_number',
+            'password',
+            'more',
+            'is_staff',
+            'is_active',
+        )
+
     def create(self, validated_data):
+        raise_errors_on_nested_writes('create', self, validated_data)
         return create_user_by_validated_data(Seller, SellerMore, **validated_data)
 
     def validate_type(self, value):
@@ -146,26 +162,16 @@ class SellerSerializer(CustomModelSerializer):
             raise serializers.ValidationError("Seller must not have is_superuser=True")
         return value
 
-    # def get_seller_products(self, seller):
-    #     if seller.products:
-    #         return [product.id for product in seller.products.all()]
 
-    def get_seller_address(self, seller):
-        return [address.id for address in seller.seller_addresses.all()]
-
-
-class DriverMoreSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DriverMore
-        exclude = ('id', 'user')
-
-
-class DriverSerializer(CustomModelSerializer):
-    url = serializers.HyperlinkedIdentityField(view_name="account:driver-detail")
-    more = DriverMoreSerializer()
+class SellerSerializer(CustomModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name='accounts:seller-detail')
+    more = SellerMoreSerializer()
+    seller_addresses = SellerAddressSerializer(many=True)
+    seller_orders = OrderDetailSerializer(many=True)
+    products = serializers.SerializerMethodField('get_seller_products')
 
     class Meta:
-        model = Driver
+        model = Seller
         fields = (
             'id',
             'type',
@@ -176,10 +182,44 @@ class DriverSerializer(CustomModelSerializer):
             'password',
             'phone_number',
             'more',
+            'products',
+            'seller_orders',
+            'seller_addresses',
             'is_staff',
             'is_active',
             'last_login',
             'url'
+        )
+
+    def get_seller_products(self, seller):
+        return [product.id for product in Product.objects.get_queryset().filter(
+            content_type__model='seller',
+            object_id=seller.id
+        )]
+
+
+class DriverMoreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DriverMore
+        exclude = ('id', 'user')
+
+
+class DriverCreateSerializer(serializers.ModelSerializer):
+    more = DriverMoreSerializer()
+
+    class Meta:
+        model = Driver
+        fields = (
+            'type',
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'phone_number',
+            'password',
+            'more',
+            'is_staff',
+            'is_active',
         )
 
     def create(self, validated_data):
@@ -199,39 +239,58 @@ class DriverSerializer(CustomModelSerializer):
         return value
 
 
+class DriverSerializer(CustomModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name="account:driver-detail")
+    driver_orders = OrderDetailSerializer(many=True)
+    more = DriverMoreSerializer()
+
+    class Meta:
+        model = Driver
+        fields = (
+            'id',
+            'type',
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'password',
+            'phone_number',
+            'driver_orders',
+            'more',
+            'is_staff',
+            'is_active',
+            'last_login',
+            'url'
+        )
+
+
 class ModeratorMoreSerializer(serializers.ModelSerializer):
     class Meta:
         model = ModeratorMore
         exclude = ('id', 'user')
 
 
-class ModeratorSerializer(CustomModelSerializer):
-    """User serializer to create, retrieve a user and get list of users"""
-
-    url = serializers.HyperlinkedIdentityField(view_name="account:moderator-detail")
+class ModeratorCreateSerializer(serializers.ModelSerializer):
     # more = ModeratorMoreSerializer()  # will be commented until we add extra fields to ModeratorMore
 
     class Meta:
-        model = User
-        fields = ('id',
-                  'type',
-                  'username',
-                  'first_name',
-                  'last_name',
-                  'email',
-                  'password',
-                  'phone_number',
-                  # 'more',
-                  'is_staff',
-                  'is_active',
-                  'is_superuser',
-                  'last_login',
-                  'url'
-                  )
+        model = Moderator
+        fields = (
+            'type',
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'phone_number',
+            'password',
+            # 'more',
+            'is_staff',
+            'is_active',
+        )
 
     def create(self, validated_data):
         raise_errors_on_nested_writes('create', self, validated_data)
-        return create_user_by_validated_data(Moderator, **validated_data)
+        return create_user_by_validated_data(Moderator, **validated_data)  # add ModMore if you uncomment 'more' above
 
     def validate_type(self, value):
         """Check whether Moderator object's type is 'moderator' """
@@ -245,17 +304,10 @@ class ModeratorSerializer(CustomModelSerializer):
         return value
 
 
-class AdminMoreSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = AdminMore
-        exclude = ('id', 'user')
-
-
-class AdminSerializer(CustomModelSerializer):
+class ModeratorSerializer(CustomModelSerializer):
     """User serializer to create, retrieve a user and get list of users"""
-
-    url = serializers.HyperlinkedIdentityField(view_name="account:admin-detail")
-    # more = AdminMoreSerializer()  # will be commented until we add extra fields to AdminMore
+    url = serializers.HyperlinkedIdentityField(view_name="account:moderator-detail")
+    products = serializers.SerializerMethodField('get_moderator_products')
 
     class Meta:
         model = User
@@ -267,6 +319,7 @@ class AdminSerializer(CustomModelSerializer):
                   'email',
                   'password',
                   'phone_number',
+                  'products',
                   # 'more',
                   'is_staff',
                   'is_active',
@@ -274,6 +327,38 @@ class AdminSerializer(CustomModelSerializer):
                   'last_login',
                   'url'
                   )
+
+    def get_moderator_products(self, moderator):
+        return [product.id for product in Product.objects.get_queryset().filter(
+            content_type__model='moderator',
+            object_id=moderator.id
+        )]
+
+
+class AdminMoreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AdminMore
+        exclude = ('id', 'user')
+
+
+class AdminCreateSerializer(serializers.ModelSerializer):
+    # more = ModeratorMoreSerializer()  # will be commented until we add extra fields to ModeratorMore
+
+    class Meta:
+        model = Admin
+        fields = (
+            'type',
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'phone_number',
+            'password',
+            # 'more',
+            'is_staff',
+            'is_superuser',
+            'is_active',
+        )
 
     def create(self, validated_data):
         raise_errors_on_nested_writes('create', self, validated_data)
@@ -296,9 +381,32 @@ class AdminSerializer(CustomModelSerializer):
         return value
 
 
+class AdminSerializer(CustomModelSerializer):
+    """User serializer to create, retrieve a user and get list of users"""
+    url = serializers.HyperlinkedIdentityField(view_name="account:admin-detail")
+    # more = AdminMoreSerializer()  # will be commented until we add extra fields to AdminMore
+
+    class Meta:
+        model = User
+        fields = ('id',
+                  'type',
+                  'username',
+                  'first_name',
+                  'last_name',
+                  'email',
+                  'password',
+                  'phone_number',
+                  # 'more',
+                  'is_staff',
+                  'is_active',
+                  'is_superuser',
+                  'last_login',
+                  'url'
+                  )
+
+
 class CustomUserSerializer(serializers.ModelSerializer):
     """User serializer to create, retrieve a user and get list of users"""
-
     url = serializers.HyperlinkedIdentityField(view_name="account:user-detail")
 
     class Meta:
@@ -317,24 +425,3 @@ class CustomUserSerializer(serializers.ModelSerializer):
                   'last_login',
                   'url'
                   )
-
-
-class CustomUserCreateSerializer(UserCreateSerializer):
-    """Rewriting the creation of user for djoser"""
-
-    def create(self, validated_data):
-        try:
-            user = self.perform_create(validated_data)
-        except IntegrityError:
-            # Todo: log this exception as critical while creating user
-            self.fail("cannot_create_user")
-
-        return user
-
-    def perform_create(self, validated_data):
-        with transaction.atomic():
-            user = create_user_by_type(**validated_data)
-            if settings.SEND_ACTIVATION_EMAIL:
-                user.is_active = False
-                user.save(update_fields=["is_active"])
-        return user

@@ -18,23 +18,27 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
+from core.auth.ouath2 import ConvertTokenView
 from .yasg import urlpatterns as doc_urls
 
 urlpatterns = [
-    path('admin/api/', include('rest_framework.urls')),
+    path('admin/api/', include('rest_framework.urls', namespace='auth-api')),
     path('admin-panel/', admin.site.urls),
 
     path('', include(('accounts.urls', "accounts"), namespace="account")),
     path('', include('address.urls')),
     path('', include('product.urls')),
     path('', include('category.urls')),
+    path('', include('cart.urls')),
+    path('', include('order.urls')),
     path('', include('service.content_type.urls')),
-    # path('', include(('accounts.urls', "accounts"), namespace="account")),
-    # path('', include('refactoring.products.product.urls')),
 
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.authtoken')),
     path('auth/', include('djoser.urls.jwt')),
+    path('auth/', include('rest_framework_social_oauth2.urls')),
+
+    path('token/convert-token/', ConvertTokenView.as_view(), name="convert_token"),
  ]
 
 urlpatterns += doc_urls

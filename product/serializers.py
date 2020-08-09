@@ -51,7 +51,7 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        exclude = ('slug', 'content_type', 'object_id')
+        exclude = ('slug', 'content_type', 'object_id', 'title', 'description', 'product_fabricator')
 
 
 class ProductCreateSerializer(serializers.ModelSerializer):
@@ -59,7 +59,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = '__all__'
+        exclude = ('slug', 'title', 'description', 'product_fabricator')
 
     def validate_content_type(self, value):
         if value.id not in get_product_creators():

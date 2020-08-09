@@ -1,7 +1,10 @@
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.password_validation import validate_password
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
+from utils.regions import TashkentRegions
 
 from phonenumber_field.modelfields import PhoneNumberField
 
@@ -19,6 +22,7 @@ class UserManager(BaseUserManager):
         email = self.normalize_email(email)
         username = self.model.normalize_username(username)
         user = self.model(username=username, email=email, **extra_fields)
+        # validate_password(password, user)
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -189,7 +193,7 @@ class Seller(User):
     class Meta:
         proxy = True
 
-    def get_phone_number(self):
+    def get_company_name(self):
         return self.more.company_name
 
     def __str__(self):
@@ -201,6 +205,12 @@ class DriverMore(models.Model):
     license_id = models.PositiveIntegerField(verbose_name="License number of a driver", blank=True, null=True)
     model = models.CharField(max_length=255, verbose_name="Model of a car", blank=True, null=True)
     country_number = models.CharField(max_length=31, verbose_name="Country number of a car", blank=True, null=True)
+    region = models.CharField(
+        max_length=64,
+        choices=TashkentRegions.choices,
+        verbose_name="Working region of a driver",
+        default=TashkentRegions.BEKTEMIR
+    )
 
     def __str__(self):
         return f"{self.user.username}'s extra fields"

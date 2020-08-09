@@ -30,8 +30,8 @@ class CustomerAddress(models.Model):
         )
 
     class Meta:
-        verbose_name_plural = 'Addresses'
-        verbose_name = 'Address'
+        verbose_name_plural = 'Customer Addresses'
+        verbose_name = 'Customer Address'
         ordering = ('customer',)
 
 

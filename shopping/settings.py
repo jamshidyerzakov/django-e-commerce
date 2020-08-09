@@ -1,24 +1,32 @@
 import os
 from datetime import timedelta
 
+from django.utils.translation import gettext_lazy as _
+import environ
+
+
+environ.Env.read_env(env_file='.env.example')
+
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'g_h_=gr(m6z6si=q%$9v4p59#qfghfghfggi@_!^%vw3$i+d#gk*uhdzy=a')
 
-DEBUG = os.environ.get('DEBUG', True)
+SECRET_KEY = os.environ.get('SECRET_KEY', "345sfgddfg345efdgsdfg345rgdfsg")
+
+DEBUG = os.environ.get('DEBUG')
 
 ALLOWED_HOSTS = ['*']
 CORS_ORIGIN_ALLOW_ALL = True
 
-DOMAIN = os.environ.get("DOMAIN", '127.0.0.1')
-SITE_NAME = os.environ.get("SITE_NAME", 'localhost')
+DOMAIN = os.environ.get("DOMAIN")
+SITE_NAME = os.environ.get("SITE_NAME")
 
 AUTH_USER_MODEL = 'accounts.User'
 
 # Application definition
 
 INSTALLED_APPS = [
+    'modeltranslation',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -30,13 +38,13 @@ INSTALLED_APPS = [
     'address',
     'category',
     'product',
+    'cart',
+    'order',
 
     # 3rd-party
     'rest_framework',
-    'rest_framework.authtoken',
     'django_filters',
     'corsheaders',
-    'djoser',
     'drf_yasg',
     'djmoney',
 
@@ -44,11 +52,19 @@ INSTALLED_APPS = [
     'django_countries',
     'generic_relations',
 
+    #auth
+    'djoser',
+    'rest_framework.authtoken',
+    'oauth2_provider',
+    'social_django',
+    'rest_framework_social_oauth2',
+
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -78,9 +94,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'shopping.wsgi.application'
 
-
 # Database
-
 
 DATABASES = {
     'default': {
@@ -91,15 +105,53 @@ DATABASES = {
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': os.environ.get("PSQL_DB_NAME"),
-#         'USER': os.environ.get('PSQL_DB_USER'),
-#         'PASSWORD': os.environ.get('PSQL_DB_PASSWORD'),
-#         'HOST': os.environ.get('PSQL_DB_HOST'),
-#         'PORT': os.environ.get('PSQL_DB_PORT'),
+#         'NAME': os.environ.get("PSQL_DB_NAME", 'umarket'),
+#         'USER': os.environ.get('PSQL_DB_USER', 'umarket'),
+#         'PASSWORD': os.environ.get('PSQL_DB_PASSWORD', '$umarket$'),
+#         'HOST': os.environ.get('PSQL_DB_HOST', '127.0.0.1'),
+#         'PORT': os.environ.get('PSQL_DB_PORT', '5432'),
 #     }
 # }
 
+# social auth
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get('GOOGLE_OAUTH2_KEY')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get('GOOGLE_OAUTH2_SECRET')
+
+SOCIAL_AUTH_FACEBOOK_KEY = os.environ.get('FACEBOOK_OAUTH2_KEY')
+SOCIAL_AUTH_FACEBOOK_SECRET = os.environ.get('FACEBOOK_OAUTH2_SECRET')
+
+# SOCIAL_AUTH_FACEBOOK_SCOPE = ['email']
+
+
+SOCIAL_AUTH_MAILRU_OAUTH2_KEY = os.environ.get('MAILRU_OAUTH2_KEY')
+SOCIAL_AUTH_MAILRU_OAUTH2_SECRET = os.environ.get('MAILRU_OAUTH2_SECRET')
+
+
+SOCIAL_AUTH_PIPELINE = (
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.user.get_username',
+    'social_core.pipeline.social_auth.associate_by_email',
+    'core.auth.pipelines.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.user.user_details',
+)
+
+
+AUTHENTICATION_BACKENDS = (
+    'social_core.backends.facebook.FacebookAppOAuth2',
+    'social_core.backends.facebook.FacebookOAuth2',
+    'social_core.backends.google.GoogleOAuth2',
+    'rest_framework_social_oauth2.backends.DjangoOAuth2',
+    'django.contrib.auth.backends.ModelBackend',
+)
+
+
 # rest
+
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -107,6 +159,8 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.TokenAuthentication',
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+        'rest_framework_social_oauth2.authentication.SocialAuthentication',
     ),
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
@@ -130,7 +184,7 @@ DJOSER = {
     'SEND_ACTIVATION_EMAIL': True,
     'SERIALIZERS':
         {
-            "user_create": "accounts.serializers.CustomUserCreateSerializer",
+            "user_create": "core.auth.djoser.CustomUserCreateSerializer",
         }
     # )
     ,
@@ -215,8 +269,10 @@ USE_L10N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/3.0/howto/static-files/
+LANGUAGES = (
+    ('ru', _('Russian')),
+    ('uz', _('Uzbek')),
+)
 
 
 STATIC_URL = '/static/'
